@@ -35,7 +35,7 @@ class Table:
             return
 
         if src and not dst:
-            self.fields.append([src])
+            self.fields.append([src, dst])
         else:
             self.fields.append([src, dst, comment])
 

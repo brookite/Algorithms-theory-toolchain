@@ -7,7 +7,7 @@ import ram2dasm
 
 cmdparser = pp.Forward()
 
-comment_string = pp.Word(pp.alphanums + " _!?,;.<>{}+-*/№()=&^$#@[]'\"")
+comment_string = pp.Word(pp.alphanums + " _!?,;.<>{}+-*/№()=&^$#@[]'\"" + pp.unicode.Cyrillic.alphas)
 comment_postfix = pp.Optional("//" + comment_string)
 
 reg = pp.Word(pp.nums).setParseAction(lambda toks: int(
@@ -58,7 +58,7 @@ class RAMProgram:
         self._jump_replace["end"] = len(lines) + 1
         for i, line in enumerate(lines):
             try:
-                cmds = cmdparser.parseString(line.strip().lower(), parse_all=True)
+                cmds = cmdparser.parseString(line.strip(), parse_all=True)
                 if ":" in list(cmds[0]):
                     tag_name = cmds[0][0].lower()
                     if tag_name not in self._jump_replace:
@@ -139,10 +139,6 @@ class RAMMachine:
         self._registers = [0] * 9
 
     def execute(self, max_iterations=10000, debug_prints=False, **kwargs):
-        trace_results = {
-            "command_exec_count": {}, "commands_executed": 0,
-            "initial_reg": self.registers
-        }
         if len(kwargs):
             self.null_registers()
             for key in kwargs:
@@ -152,6 +148,10 @@ class RAMMachine:
                         reg = int(key) - 1
                         if 0 <= reg < 10:
                             self._registers[reg] = kwargs["R" + str(key)]
+        trace_results = {
+            "command_exec_count": {}, "commands_executed": 0,
+            "initial_reg": tuple(self.registers)
+        }
         instruction_pointer = 0
         iterations = 0
         while True:
@@ -182,7 +182,7 @@ class RAMMachine:
                 trace_results["command_exec_count"].setdefault(cmd, 0)
                 trace_results["command_exec_count"][cmd] += 1
 
-                self._registers[command[2] - 1] = self._registers[command[1]]
+                self._registers[command[2] - 1] = self._registers[command[1] - 1]
                 if debug_prints:
                     print(f"{instruction_pointer+1} {cmd} ", end='')
                     print(f"R{command[2]}={self.registers[command[1] - 1]};"
@@ -201,34 +201,37 @@ class RAMMachine:
                     print(f"{instruction_pointer+1} {cmd} ", end='')
                     print(f"R{command[1]}=0 --> {instruction_pointer + 2}")
             elif command[0] == "jmp":
+                if "//" in command:
+                    command = command[:command.index("//")]
                 if len(command) == 2:
-                    jmp = self.program._jump_replace.get(command[1])
+                    jmp = self.program._jump_replace.get(command[-1])
                     if jmp:
-                        cmd = f"J(1, 1, {jmp})"
+                        jmp -= 1
+                        cmd = f"J(1, 1, {jmp+1})"
                         trace_results["commands_executed"] += 1
                         trace_results["command_exec_count"].setdefault(cmd, 0)
                         trace_results["command_exec_count"][cmd] += 1
                         if debug_prints:
                             print(f"{instruction_pointer+1} {cmd} ", end='')
-                            print(f"R{command[1]}==R{command[2]}"
-                                  f" -> {instruction_pointer+1}")
+                            print(f"R1==R1"
+                                  f" -> {jmp+1}")
                         instruction_pointer = jmp
                         continue
                     else:
                         raise RAMRuntimeError(
-                            f"Tag '{command[1]}' wasn't found")
+                            f"Tag '{command[-1]}' wasn't found")
                 else:
                     jmp = self.program._jump_replace.get(command[3])
                     if jmp:
-                        cmd = f"J({command[1]}, {command[2]}, {jmp})"
+                        jmp -= 1
+                        cmd = f"J({command[1]}, {command[2]}, {jmp+1})"
                         trace_results["commands_executed"] += 1
                         trace_results["command_exec_count"].setdefault(cmd, 0)
                         trace_results["command_exec_count"][cmd] += 1
 
-                        if self._registers[command[1]] \
-                                == self._registers[command[2]]:
+                        if self._registers[command[1] - 1] \
+                                == self._registers[command[2] - 1]:
                             trace_results["commands_executed"] += 1
-                            instruction_pointer = jmp
 
                             if debug_prints:
                                 print(
@@ -236,7 +239,8 @@ class RAMMachine:
                                     end='')
                                 print(f"R{command[1]}==R{command[2]}"
                                       f"={self.registers[command[1] - 1]}"
-                                      f" -> {instruction_pointer+1}")
+                                      f" -> {jmp+1}")
+                            instruction_pointer = jmp
                             continue
                     else:
                         raise RAMRuntimeError(
@@ -250,8 +254,8 @@ class RAMMachine:
         return trace_results
 
 
-def get_filelines(file):
-    with open(file, encoding="utf-8") as fobj:
+def get_filelines(file, encoding="utf-8"):
+    with open(file, encoding=encoding) as fobj:
         return fobj.readlines()
 
 
@@ -280,7 +284,7 @@ if __name__ == '__main__':
     parser.add_argument("action", help="Основное действие: compile, execute")
     parser.add_argument("path", help="Путь к файлу")
     parser.add_argument("-r", "--reg", action="store")
-    parser.add_argument("-t", "--trace", action="store_true")
+    parser.add_argument("--notrace", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true", default=False)
 
     args = parser.parse_args()
@@ -289,7 +293,7 @@ if __name__ == '__main__':
         compile_file(args.path)
     elif args.action == "execute":
         if os.path.splitext(args.path)[1] == ".ram":
-            lines = ram2dasm.parse(get_filelines(args.path)).split("\n")
+            lines = ram2dasm.parse(get_filelines(args.path, encoding="cp1251")).split("\n")
         else:
             lines = get_filelines(args.path)
         machine = get_machine(lines)
@@ -303,7 +307,7 @@ if __name__ == '__main__':
             results = machine.execute(**regdict, debug_prints=args.debug)
             for i in range(len(machine.registers)):
                 print(f"R{i+1}=", machine.registers[i])
-            if args.t:
+            if not args.notrace:
                 print(f"Всего команд выполнено:", results["commands_executed"])
                 print(f"Изначальное состояние регистров:", results["initial_reg"])
                 print("Статистика выполненных команд:")

@@ -13,12 +13,12 @@ def print_function(coefs):
 
 
 tests = [
-    "9",
-    "999",
-    "99999"
+    "1",
+    "10001",
+    "10000001"
 ]
 check = [
-    "9999999"
+    "10111100001"
 ]
 main_criteria = 'replacements'
 is_tape_end = False

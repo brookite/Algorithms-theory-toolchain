@@ -14,6 +14,8 @@ def parse(lines):
     first_pass = {}
     jmp_markers = []
     for line in lines:
+        if not line.strip():
+            continue
         main_match = PATTERN.match(line)
         if main_match:
             number = main_match.group(1)
@@ -37,20 +39,25 @@ def parse(lines):
             elif command == "J":
                 if not arg1 or not arg2 or not arg3:
                     raise SyntaxError("Incorrect line:", line)
+                if int(arg3) == len(lines):
+                    label = "end"
+                else:
+                    label = "label_" + arg3
                 if arg2 != arg1:
                     first_pass[number] = [
-                        "jmp", arg1, arg2, "label_" + arg3, "//", comment]
+                        "jmp", arg1, arg2, label, "//", comment]
                 else:
                     first_pass[number] = [
-                        "jmp", "label_" + arg3, "//", comment]
+                        "jmp", label, "//", comment]
                 jmp_markers.append(arg3)
         else:
             end_match = PROGRAM_FINAL_PATTERN.match(line)
             if not end_match:
-                raise SyntaxError("Incorrect line:", line)
+                raise SyntaxError(f"Incorrect line: {line}")
 
     for marker in jmp_markers:
-        first_pass[marker] = ["label_" + marker + ":"] + first_pass[marker]
+        if int(marker) != len(lines):
+            first_pass[marker] = ["label_" + marker + ":"] + first_pass[marker]
 
     line = ""
     for key in first_pass:
@@ -60,13 +67,13 @@ def parse(lines):
         else:
             tokens[-1] = tokens[-1].lstrip()
         line += " ".join(tokens) + "\n"
-    return line
+    return line.strip()
 
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         file = sys.argv[1]
-        with open(file, encoding="utf-8") as fobj:
+        with open(file, encoding="cp1251") as fobj:
             lines = fobj.readlines()
             try:
                 print(parse(lines[2:]))

@@ -1,14 +1,13 @@
 from ram_translator import *
 import os
 
-root = "../../../Учёба/Дисциплины/2 семестр/Теория алгоритмов/Лабораторные работы/ЛР5/code"
-file = os.path.join(root, "18.txt")
+root = "train_ram"
+file = os.path.join(root, "x2.txt")
 
-debug_mode = False
+debug_mode = True
 
 registry_preset = {
-    "R0": 0,
-    "R1": 0,
+    "R1": 2,
     "R2": 0,
     "R3": 0,
     "R4": 0,
@@ -19,7 +18,7 @@ registry_preset = {
     "R9": 0
 }
 
-machine = RAMMachine(RAMProgram.from_bytes(file))
+machine = RAMMachine(RAMProgram.from_file(file))
 
 
 def print_registers():
@@ -37,5 +36,5 @@ def get_test_result(word, is_tape_end=True, criteria="command_executed"):
 
 if __name__ == '__main__':
     # print(machine.program.compile())
-    results = get_results()
+    results = get_results(**registry_preset)
     print_registers()

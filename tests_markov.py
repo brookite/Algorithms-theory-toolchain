@@ -2,10 +2,10 @@ from altmarkov import *
 import os
 
 #root = "../../../Учёба/Дисциплины/2 семестр/Теория алгоритмов/Лабораторные работы/ЛР4"
-root = "train_turing"
+root = "train_markov"
 file = os.path.join(root, "P6_x+1.nma")
 
-word = "9"
+word = "1001"
 debug_mode = False
 
 program = MarkovMachine(MarkovFile.from_bytes(file))
