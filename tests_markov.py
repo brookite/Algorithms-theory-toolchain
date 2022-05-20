@@ -3,7 +3,7 @@ import os
 
 #root = "../../../Учёба/Дисциплины/2 семестр/Теория алгоритмов/Лабораторные работы/ЛР4"
 root = "train_markov"
-file = os.path.join(root, "P6_x+1.nma")
+file = os.path.join(root, "2_10.nma")
 
 word = "1001"
 debug_mode = False

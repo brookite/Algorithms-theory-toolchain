@@ -57,7 +57,9 @@ def parse(lines):
 
     for marker in jmp_markers:
         if int(marker) != len(lines):
-            first_pass[marker] = ["label_" + marker + ":"] + first_pass[marker]
+            label_tag = "label_" + marker + ":"
+            if label_tag not in first_pass[marker]:
+                first_pass[marker] = [label_tag] + first_pass[marker]
 
     line = ""
     for key in first_pass:
