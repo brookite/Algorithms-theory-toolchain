@@ -62,8 +62,10 @@ def manual_test_complexity(manual_test_results, manual_check_results):
 
 
 def test_complexity(test_func, test_data, check_data, *args, **kwargs):
-    detailed_info = kwargs.get("detailed_info")
-    kwargs.pop("detailed_info")
+    if "detailed_info" in kwargs:
+        detailed_info = bool(kwargs.pop("detailed_info"))
+    else:
+        detailed_info = False
     if callable(test_func):
         test_results = test_steps(test_data, test_func, *args, **kwargs)
     else:
@@ -76,7 +78,7 @@ def test_complexity(test_func, test_data, check_data, *args, **kwargs):
         g = coef_function(coefs)
         for item in check_data:
             n = len(item)
-            if kwargs.get("detailed_info"):
+            if detailed_info:
                 difs[n] = {
                     "g(n)": g(n),
                     "program": test_func(item, *args, **kwargs),
