@@ -81,6 +81,12 @@ class RAMProgram:
         for i, command in enumerate(self._commands):
             if ":" in command:
                 command = command[2:]
+
+            if "//" in command:
+                operator_count = len(command[:command.index("//")])
+            else:
+                operator_count = len(command)
+
             if command[0] == "inc":
                 program += f"{i + 1} S({command[1]})" + \
                     self._form_postfix(command)
@@ -91,7 +97,7 @@ class RAMProgram:
                 program += f"{i + 1} Z({command[1]})" + \
                     self._form_postfix(command)
             elif command[0] == "jmp":
-                if len(command) == 2:
+                if operator_count == 2:
                     jmp = self._jump_replace.get(command[1])
                     if jmp:
                         program += f"{i + 1} J(1,1,{jmp})" + \
